@@ -29,5 +29,4 @@ urlpatterns = [
     # rango/ to be handled by the rango application
     url(r'^admin/', admin.site.urls),
     # is '+' necessary??
-    static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
