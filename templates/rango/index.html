@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block body_block %}
+
 		<h1>Rango says...</h1>
 		<div>hey there partner!</div>
 		
@@ -30,7 +31,7 @@
 		<ul>
 			{% for page in pages %}
 				<li>
-				<a href="{{ page.url }}">{{ page.title }}</a>
+				<a href="{% url 'goto' %}?page_id={{ page.id }}"\>{{ page.title }}</a>
 				</li>
 			{% endfor %}
 		</ul>
@@ -42,3 +43,4 @@
 		<img src="{% static "images/rango.jpg" %}" alt="Picture of Rango" />
 
 {% endblock %}
+
