@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from rango.forms import CategoryForm, PageForm
+from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 
 # Import Category model
 from rango.models import Category
@@ -90,4 +90,48 @@ def about(request):
     context_dict = {'boldmessage': "Take this out if the tests fail!!!"}
 
     return render(request, 'rango/about.html', context=context_dict)
+
+def register(request):
+    # Registration success flag
+    registered = False
+
+    if request.method == 'POST':
+        user_form = UserForm(data=request.POST)
+        profile_form = UserProfileForm(data=request.POST)
+
+        # if two forms are valid
+        if user_form.is_valid() and profile_form.is_valid():
+            # Save user form data to database
+            user = user_form.save()
+
+            # Hash password with set_password() then save
+            user.set_password(user.password)
+            user.save()
+
+            profile = profile_form.save(commit=False)
+            profile.user = user
+
+            # If user provided a profile picture:
+            if 'picture' in request.FILES:
+                profile.picture = request.FILES['picture']
+
+            profile.save()
+
+            # Update flag to show template registration was successful
+            registered = True
+        else:
+            # Invalid form or forms, print to terminal
+            print(user_form.errors, profile_form.errors)
+    else:
+        # Not an HTTP POST
+        user_form = UserForm()
+        profile_form = UserProfileForm()
+
+    return render(request,
+                  'rango/register.html',
+                  {'user_form': user_form,
+                   'profile_form': profile_form,
+                   'registered': registered})
+
+
 
