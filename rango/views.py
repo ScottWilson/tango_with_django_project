@@ -2,6 +2,12 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from rango.forms import CategoryForm, PageForm, UserForm, UserProfileForm
 
+from django.contrib.auth import authenticate, login
+from django.http import HttpResponseRedirect, HttpResponse
+from django.core.urlresolvers import reverse
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import logout
+
 # Import Category model
 from rango.models import Category
 from rango.models import Page
@@ -132,6 +138,46 @@ def register(request):
                   {'user_form': user_form,
                    'profile_form': profile_form,
                    'registered': registered})
+
+def user_login(request):
+    # if request is an HTTP POST, try and pull relevant information
+    if request.method == 'POST':
+        # Get username and password
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # return user object with authenticated info
+        user = authenticate(username=username, password=password)
+
+        # presence of user object: details correct
+        # if None: no user with details correct
+        if user:
+            # check if account disabled
+            if user.is_active:
+                login(request, user)
+                return HttpResponseRedirect(reverse('index'))
+            else:
+                return HttpResponse("Your Rango account is disabled.")
+        else:
+            print("Invalid login details: {0}, {1}".format(username, password))
+            return HttpResponse("Invalid login details supplied.")
+
+    else:
+        # Not an HTTP POST, likely HTTP GET so display login form
+        return render(request, 'rango/login.html', {})
+
+
+@login_required
+def restricted(request):
+    context_dict = {'boldmessage': "This page is restricted! Try logging out."}
+    
+    return render(request, 'rango/restricted.html', context=context_dict)
+            
+@login_required
+def user_logout(request):
+    # We know the user is logged in so we can just log out
+    logout(request)
+    return HttpResponseRedirect(reverse('index'))
 
 
 
