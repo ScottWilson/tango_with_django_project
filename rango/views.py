@@ -8,9 +8,40 @@ from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
 
+from datetime import datetime
+
 # Import Category model
 from rango.models import Category
 from rango.models import Page
+
+def get_server_side_cookie(request, cookie, default_val=None):
+    val = request.session.get(cookie)
+    if not val:
+        val = default_val
+    return val
+
+def visitor_cookie_handler(request):
+    # Get number of visits to the site
+    visits = int(get_server_side_cookie(request, 'visits', '1'))
+    last_visit_cookie = get_server_side_cookie(request,
+                                               'last_visit',
+                                               str(datetime.now()))
+    last_visit_time = datetime.strptime(last_visit_cookie[:-7],
+                                        '%Y-%m-%d %H:%M:%S')
+
+    # If it's been more than a day since the last visit:
+    if (datetime.now() - last_visit_time).days > 0:
+        visits = visits + 1
+        # Update last visit cookie
+        request.session['last_visit'] = str(datetime.now())
+    else:
+        visits = 1
+        # Set last visit cookie
+        request.session['last_visit'] = last_visit_cookie
+
+    # update visits cookie
+    request.session['visits'] = visits
+                    
 
 def show_category(request, category_name_slug):
     # Create context dictionary to be passed to
@@ -80,6 +111,8 @@ def add_page(request, category_name_slug):
     return render(request, 'rango/add_page.html', context_dict)
 
 def index(request):
+    request.session.set_test_cookie()
+    
     # Query database for a list of all categories currently stored
     # Order categories by number of likes in descending order (top 5 only)
     category_list = Category.objects.order_by('-likes')[:5]
@@ -87,13 +120,25 @@ def index(request):
     
     context_dict = {'categories': category_list, 'pages': page_list}
 
+    visitor_cookie_handler(request)
+    context_dict['visits'] = request.session['visits']
+
+    response = render(request, 'rango/index.html', context_dict)
+
     # Return a rendered response to send to the client
     # We make use of the shortcut function to make our lives easier
     # Note that the first parameter is the template we wish to use
-    return render(request, 'rango/index.html', context = context_dict)
+    return response
 
 def about(request):
+    if request.session.test_cookie_worked():
+        print("TEST COOKIE WORKING!")
+        request.session.delete_test_cookie()
+
+    visitor_cookie_handler(request)
+
     context_dict = {'boldmessage': "Take this out if the tests fail!!!"}
+    context_dict['visits'] = request.session['visits']
 
     return render(request, 'rango/about.html', context=context_dict)
 
